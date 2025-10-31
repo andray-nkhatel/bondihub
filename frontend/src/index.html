@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BondiHub - House Renting Service for Zambia</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find your perfect home in Zambia with BondiHub - the leading house renting platform with mobile money payments, local currency support, and mobile-first design.">
+  <meta name="keywords" content="house rental, Zambia, property, rent, MTN MoMo, Airtel Money, ZMW">
+  <meta name="author" content="BondiHub">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="BondiHub - House Renting Service for Zambia">
+  <meta property="og:description" content="Find your perfect home in Zambia with BondiHub - the leading house renting platform with mobile money payments, local currency support, and mobile-first design.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bondihub.com">
+  <meta property="og:image" content="https://bondihub.com/assets/og-image.jpg">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BondiHub - House Renting Service for Zambia">
+  <meta name="twitter:description" content="Find your perfect home in Zambia with BondiHub - the leading house renting platform with mobile money payments, local currency support, and mobile-first design.">
+  <meta name="twitter:image" content="https://bondihub.com/assets/twitter-image.jpg">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+  <link rel="manifest" href="assets/site.webmanifest">
+  
+  <!-- Preconnect to external domains for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Theme color for mobile browsers -->
+  <meta name="theme-color" content="#3b82f6">
+  
+  <!-- iOS specific meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BondiHub">
+  
+  <!-- Android specific meta tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Security headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  
+  <!-- Performance hints -->
+  <link rel="dns-prefetch" href="//api.bondihub.com">
+  <link rel="preload" href="assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+  <app-root></app-root>
+  
+  <!-- Loading fallback for slow connections -->
+  <noscript>
+    <div style="text-align: center; padding: 2rem; font-family: Arial, sans-serif;">
+      <h1>JavaScript Required</h1>
+      <p>BondiHub requires JavaScript to function properly. Please enable JavaScript in your browser settings.</p>
+    </div>
+  </noscript>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/ngsw-worker.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+basePath: /api/v1
+definitions:
+  handlers.CreatePaymentRequest:
+    properties:
+      agreement_id:
+        type: string
+      amount:
+        minimum: 0
+        type: number
+      method:
+        enum:
+        - MTN
+        - Airtel
+        - Cash
+        - Bank
+        type: string
+      reference_no:
+        type: string
+    required:
+    - agreement_id
+    - amount
+    - method
+    type: object
+  handlers.CreateRentalAgreementRequest:
+    properties:
+      deposit:
+        minimum: 0
+        type: number
+      end_date:
+        type: string
+      house_id:
+        type: string
+      rent_amount:
+        minimum: 0
+        type: number
+      start_date:
+        type: string
+      tenant_id:
+        type: string
+    required:
+    - deposit
+    - end_date
+    - house_id
+    - rent_amount
+    - start_date
+    - tenant_id
+    type: object
+  handlers.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      full_name:
+        example: John Doe
+        maxLength: 100
+        minLength: 2
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+      phone:
+        example: "+260123456789"
+        minLength: 10
+        type: string
+      role:
+        enum:
+        - landlord
+        - tenant
+        - agent
+        - admin
+        example: tenant
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - phone
+    - role
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@bondihub.com
+    name: BondiHub Support
+    url: https://bondihub.com
+  description: House Renting Service API for Zambia - Find and rent houses across
+    Zambia with secure payments via MTN MoMo and Airtel Money
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: BondiHub API
+  version: "1.0"
+paths:
+  /admin/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive statistics for the admin dashboard
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Admin access required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get admin dashboard statistics
+      tags:
+      - Admin
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user with email and password
+      parameters:
+      - description: User login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login user
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with the provided information
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a new user
+      tags:
+      - Authentication
+  /houses:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of houses with optional filtering
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: House type filter
+        in: query
+        name: house_type
+        type: string
+      - description: Status filter
+        in: query
+        name: status
+        type: string
+      - description: Minimum rent filter
+        in: query
+        name: min_rent
+        type: number
+      - description: Maximum rent filter
+        in: query
+        name: max_rent
+        type: number
+      - description: Number of bedrooms filter
+        in: query
+        name: bedrooms
+        type: integer
+      - description: Number of bathrooms filter
+        in: query
+        name: bathrooms
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Houses retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get houses
+      tags:
+      - Houses
+  /houses/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific house
+      parameters:
+      - description: House ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: House retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid house ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: House not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get house by ID
+      tags:
+      - Houses
+  /payments:
+    get:
+      consumes:
+      - application/json
+      description: Get payment history for the authenticated user
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Payments retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get payments
+      tags:
+      - Payments
+    post:
+      consumes:
+      - application/json
+      description: Process a payment for a rental agreement using various payment
+        methods
+      parameters:
+      - description: Payment details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Payment processed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Process payment
+      tags:
+      - Payments
+  /rentals:
+    post:
+      consumes:
+      - application/json
+      description: Create a new rental agreement between landlord and tenant
+      parameters:
+      - description: Rental agreement details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateRentalAgreementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Rental agreement created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create rental agreement
+      tags:
+      - Rentals
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bondihub_postgres
+    environment:
+      POSTGRES_DB: bondihub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - bondihub_network
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: bondihub_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bondihub_network
+
+  # BondiHub Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bondihub_backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: bondihub
+      DB_SSLMODE: disable
+      JWT_SECRET: your-super-secret-jwt-key-here
+      JWT_EXPIRES_IN: 24h
+      PORT: 8080
+      GIN_MODE: release
+      CLOUDINARY_CLOUD_NAME: your-cloud-name
+      CLOUDINARY_API_KEY: your-api-key
+      CLOUDINARY_API_SECRET: your-api-secret
+      MTN_MOMO_API_URL: https://sandbox.momodeveloper.mtn.com
+      MTN_MOMO_API_KEY: your-mtn-api-key
+      MTN_MOMO_SUBSCRIPTION_KEY: your-mtn-subscription-key
+      AIRTEL_MONEY_API_URL: https://openapiuat.airtel.africa
+      AIRTEL_MONEY_CLIENT_ID: your-airtel-client-id
+      AIRTEL_MONEY_CLIENT_SECRET: your-airtel-client-secret
+      COMMISSION_RATE: 0.05
+      FEATURED_LISTING_PRICE: 500.00
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bondihub_network
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: bondihub_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+    networks:
+      - bondihub_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bondihub_network:
+    driver: bridge
