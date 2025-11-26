@@ -21,6 +21,7 @@ type Config struct {
 	JWTExpiresIn       time.Duration
 	Port               string
 	GinMode            string
+	CloudinaryURL      string
 	CloudinaryCloud    string
 	CloudinaryKey      string
 	CloudinarySecret   string
@@ -63,16 +64,17 @@ func Load() *Config {
 		DBHost:             getEnv("DB_HOST", "localhost"),
 		DBPort:             getEnv("DB_PORT", "5432"),
 		DBUser:             getEnv("DB_USER", "postgres"),
-		DBPassword:         getEnv("DB_PASSWORD", "password"),
+		DBPassword:         getEnv("DB_PASSWORD", "postgres"),
 		DBName:             getEnv("DB_NAME", "bondihub"),
 		DBSSLMode:          getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:          getEnv("JWT_SECRET", "your-super-secret-jwt-key-here"),
 		JWTExpiresIn:       jwtExpiresIn,
 		Port:               getEnv("PORT", "8080"),
 		GinMode:            getEnv("GIN_MODE", "debug"),
-		CloudinaryCloud:    getEnv("CLOUDINARY_CLOUD_NAME", ""),
-		CloudinaryKey:      getEnv("CLOUDINARY_API_KEY", ""),
-		CloudinarySecret:   getEnv("CLOUDINARY_API_SECRET", ""),
+		CloudinaryURL:      getEnv("CLOUDINARY_URL", ""),
+		CloudinaryCloud:    getEnv("CLOUDINARY_CLOUD_NAME", "dxdjpss9e"),
+		CloudinaryKey:      getEnv("CLOUDINARY_API_KEY", "433566288488979"),
+		CloudinarySecret:   getEnv("CLOUDINARY_API_SECRET", "LJftQgKyBha2XF6yNIfgTSTwZYE"),
 		MTNMoMoAPIURL:      getEnv("MTN_MOMO_API_URL", ""),
 		MTNMoMoAPIKey:      getEnv("MTN_MOMO_API_KEY", ""),
 		MTNMoMoSubKey:      getEnv("MTN_MOMO_SUBSCRIPTION_KEY", ""),

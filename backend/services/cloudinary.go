@@ -2,6 +2,7 @@ package services
 
 import (
 	"bondihub/config"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -17,14 +18,28 @@ type CloudinaryService struct {
 }
 
 // NewCloudinaryService creates a new Cloudinary service instance
+// It supports both CLOUDINARY_URL format (cloudinary://key:secret@cloud) and individual parameters
 func NewCloudinaryService() (*CloudinaryService, error) {
-	cld, err := cloudinary.NewFromParams(
-		config.AppConfig.CloudinaryCloud,
-		config.AppConfig.CloudinaryKey,
-		config.AppConfig.CloudinarySecret,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Cloudinary: %w", err)
+	var cld *cloudinary.Cloudinary
+	var err error
+
+	// Try to use CLOUDINARY_URL if available (preferred method)
+	cloudinaryURL := config.AppConfig.CloudinaryURL
+	if cloudinaryURL != "" {
+		cld, err = cloudinary.NewFromURL(cloudinaryURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize Cloudinary from URL: %w", err)
+		}
+	} else {
+		// Fall back to individual parameters
+		cld, err = cloudinary.NewFromParams(
+			config.AppConfig.CloudinaryCloud,
+			config.AppConfig.CloudinaryKey,
+			config.AppConfig.CloudinarySecret,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize Cloudinary from params: %w", err)
+		}
 	}
 
 	return &CloudinaryService{cld: cld}, nil
@@ -38,10 +53,13 @@ func (cs *CloudinaryService) UploadImage(ctx context.Context, file multipart.Fil
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// Convert bytes to Reader for Cloudinary
+	fileReader := bytes.NewReader(fileBytes)
+
 	// Upload to Cloudinary
 	result, err := cs.cld.Upload.Upload(
 		ctx,
-		fileBytes,
+		fileReader,
 		uploader.UploadParams{
 			Folder:         folder,
 			ResourceType:   "image",
@@ -57,9 +75,12 @@ func (cs *CloudinaryService) UploadImage(ctx context.Context, file multipart.Fil
 
 // UploadImageFromBytes uploads an image from bytes to Cloudinary
 func (cs *CloudinaryService) UploadImageFromBytes(ctx context.Context, fileBytes []byte, folder string) (*uploader.UploadResult, error) {
+	// Convert bytes to Reader for Cloudinary
+	fileReader := bytes.NewReader(fileBytes)
+
 	result, err := cs.cld.Upload.Upload(
 		ctx,
-		fileBytes,
+		fileReader,
 		uploader.UploadParams{
 			Folder:         folder,
 			ResourceType:   "image",

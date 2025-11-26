@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"bondihub/models"
 
@@ -18,15 +17,15 @@ var DB *gorm.DB
 func InitDB() {
 	var err error
 
-	// Database connection string
+	// Database connection string with defaults
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_SSLMODE"),
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_USER", "postgres"),
+		getEnv("DB_PASSWORD", "postgres"),
+		getEnv("DB_NAME", "bondihub"),
+		getEnv("DB_PORT", "5432"),
+		getEnv("DB_SSLMODE", "disable"),
 	)
 
 	// Connect to database

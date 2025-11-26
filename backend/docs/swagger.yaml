@@ -1,5 +1,54 @@
 basePath: /api/v1
 definitions:
+  handlers.CreateHouseRequest:
+    properties:
+      address:
+        minLength: 10
+        type: string
+      area:
+        minimum: 0
+        type: number
+      bathrooms:
+        minimum: 0
+        type: integer
+      bedrooms:
+        minimum: 0
+        type: integer
+      description:
+        minLength: 10
+        type: string
+      house_type:
+        enum:
+        - apartment
+        - house
+        - studio
+        - townhouse
+        - commercial
+        type: string
+      is_featured:
+        type: boolean
+      latitude:
+        maximum: 90
+        minimum: -90
+        type: number
+      longitude:
+        maximum: 180
+        minimum: -180
+        type: number
+      monthly_rent:
+        minimum: 0
+        type: number
+      title:
+        maxLength: 200
+        minLength: 5
+        type: string
+    required:
+    - address
+    - description
+    - house_type
+    - monthly_rent
+    - title
+    type: object
   handlers.CreatePaymentRequest:
     properties:
       agreement_id:
@@ -87,6 +136,33 @@ definitions:
     - password
     - phone
     - role
+    type: object
+  handlers.UpdateHouseRequest:
+    properties:
+      address:
+        type: string
+      area:
+        type: number
+      bathrooms:
+        type: integer
+      bedrooms:
+        type: integer
+      description:
+        type: string
+      house_type:
+        type: string
+      is_featured:
+        type: boolean
+      latitude:
+        type: number
+      longitude:
+        type: number
+      monthly_rent:
+        type: number
+      status:
+        type: string
+      title:
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -272,7 +348,99 @@ paths:
       summary: Get houses
       tags:
       - Houses
+    post:
+      consumes:
+      - application/json
+      description: Create a new house listing for rent (landlords and admins only)
+      parameters:
+      - description: House creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateHouseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: House created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Only landlords can create houses
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create house
+      tags:
+      - Houses
   /houses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a house listing (owner or admin only)
+      parameters:
+      - description: House ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: House deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid house ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - You can only delete your own houses
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: House not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete house
+      tags:
+      - Houses
     get:
       consumes:
       - application/json
@@ -307,6 +475,163 @@ paths:
             additionalProperties: true
             type: object
       summary: Get house by ID
+      tags:
+      - Houses
+    put:
+      consumes:
+      - application/json
+      description: Update an existing house listing (owner or admin only)
+      parameters:
+      - description: House ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: House update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateHouseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: House updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - You can only update your own houses
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: House not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update house
+      tags:
+      - Houses
+  /houses/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an image for a house listing (owner or admin only)
+      parameters:
+      - description: House ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: House image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Image uploaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid house ID or no image file provided
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - You can only upload images for your own houses
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: House not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload house image
+      tags:
+      - Houses
+  /images/{imageId}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an image from a house listing (owner or admin only)
+      parameters:
+      - description: Image ID
+        in: path
+        name: imageId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid image ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - You can only delete images for your own houses
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Image not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete house image
       tags:
       - Houses
   /payments:

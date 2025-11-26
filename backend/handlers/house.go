@@ -5,6 +5,7 @@ import (
 	"bondihub/models"
 	"bondihub/services"
 	"bondihub/utils"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,7 +21,34 @@ type HouseHandler struct {
 
 // NewHouseHandler creates a new house handler
 func NewHouseHandler() *HouseHandler {
-	cloudinaryService, _ := services.NewCloudinaryService()
+	// Log config values for debugging (mask secret)
+	cfg := config.AppConfig
+	if cfg.CloudinaryURL != "" {
+		// Mask the secret in the URL
+		urlDisplay := cfg.CloudinaryURL
+		if len(urlDisplay) > 30 {
+			urlDisplay = urlDisplay[:20] + "***" + urlDisplay[len(urlDisplay)-10:]
+		}
+		log.Printf("Initializing Cloudinary service from CLOUDINARY_URL: %s", urlDisplay)
+	} else {
+		secretDisplay := "***"
+		if len(cfg.CloudinarySecret) > 10 {
+			secretDisplay = cfg.CloudinarySecret[:10] + "..."
+		}
+		log.Printf("Initializing Cloudinary service with Cloud: %s, Key: %s, Secret: %s...", 
+			cfg.CloudinaryCloud, cfg.CloudinaryKey, secretDisplay)
+	}
+	
+	cloudinaryService, err := services.NewCloudinaryService()
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to initialize Cloudinary service: %v", err)
+		log.Printf("   Cloud: %s, Key: %s, Secret length: %d", 
+			cfg.CloudinaryCloud, cfg.CloudinaryKey, len(cfg.CloudinarySecret))
+		log.Println("   Image uploads will not work until Cloudinary is properly configured")
+		// Continue without Cloudinary service - uploads will fail gracefully
+	} else {
+		log.Println("✅ Cloudinary service initialized successfully")
+	}
 	return &HouseHandler{
 		cloudinaryService: cloudinaryService,
 	}
@@ -28,17 +56,17 @@ func NewHouseHandler() *HouseHandler {
 
 // CreateHouseRequest represents the request structure for creating a house
 type CreateHouseRequest struct {
-	Title       string  `json:"title" binding:"required,min=5,max=200"`
-	Description string  `json:"description" binding:"required,min=10"`
-	Address     string  `json:"address" binding:"required,min=10"`
-	MonthlyRent float64 `json:"monthly_rent" binding:"required,min=0"`
-	HouseType   string  `json:"house_type" binding:"required,oneof=apartment house studio townhouse commercial"`
-	Latitude    float64 `json:"latitude" binding:"required"`
-	Longitude   float64 `json:"longitude" binding:"required"`
-	Bedrooms    int     `json:"bedrooms" binding:"min=0"`
-	Bathrooms   int     `json:"bathrooms" binding:"min=0"`
-	Area        float64 `json:"area" binding:"min=0"`
-	IsFeatured  bool    `json:"is_featured"`
+	Title       string   `json:"title" binding:"required,min=5,max=200"`
+	Description string   `json:"description" binding:"required,min=10"`
+	Address     string   `json:"address" binding:"required,min=10"`
+	MonthlyRent float64  `json:"monthly_rent" binding:"required,min=0"`
+	HouseType   string   `json:"house_type" binding:"required,oneof=apartment house studio townhouse commercial"`
+	Latitude    *float64 `json:"latitude" binding:"omitempty,min=-90,max=90"`
+	Longitude   *float64 `json:"longitude" binding:"omitempty,min=-180,max=180"`
+	Bedrooms    int      `json:"bedrooms" binding:"min=0"`
+	Bathrooms   int      `json:"bathrooms" binding:"min=0"`
+	Area        float64  `json:"area" binding:"min=0"`
+	IsFeatured  bool     `json:"is_featured"`
 }
 
 // UpdateHouseRequest represents the request structure for updating a house
@@ -58,6 +86,19 @@ type UpdateHouseRequest struct {
 }
 
 // CreateHouse handles creating a new house
+// @Summary Create house
+// @Description Create a new house listing for rent (landlords and admins only)
+// @Tags Houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body CreateHouseRequest true "House creation data"
+// @Success 201 {object} map[string]interface{} "House created successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request data"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - Only landlords can create houses"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /houses [post]
 func (hh *HouseHandler) CreateHouse(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -79,6 +120,27 @@ func (hh *HouseHandler) CreateHouse(c *gin.Context) {
 		return
 	}
 
+	// Set default coordinates if not provided (default to 0, 0)
+	// This allows users to omit coordinates, which will default to (0, 0)
+	latitude := 0.0
+	longitude := 0.0
+	if req.Latitude != nil {
+		latitude = *req.Latitude
+	}
+	if req.Longitude != nil {
+		longitude = *req.Longitude
+	}
+
+	// Only validate coordinates if BOTH are explicitly provided (not nil)
+	// If both are provided and equal to (0, 0), reject as invalid
+	// If omitted, defaulting to (0, 0) is allowed
+	if req.Latitude != nil && req.Longitude != nil && latitude == 0 && longitude == 0 {
+		utils.ValidationErrorResponse(c, "Invalid request data", map[string]string{
+			"error": "Coordinates (0, 0) are not valid. Please provide valid latitude and longitude values, or omit both fields to use default values.",
+		})
+		return
+	}
+
 	// Create house
 	house := models.House{
 		LandlordID:  userModel.ID,
@@ -88,8 +150,8 @@ func (hh *HouseHandler) CreateHouse(c *gin.Context) {
 		MonthlyRent: req.MonthlyRent,
 		Status:      models.StatusAvailable,
 		HouseType:   models.HouseType(req.HouseType),
-		Latitude:    req.Latitude,
-		Longitude:   req.Longitude,
+		Latitude:    latitude,
+		Longitude:   longitude,
 		Bedrooms:    req.Bedrooms,
 		Bathrooms:   req.Bathrooms,
 		Area:        req.Area,
@@ -246,6 +308,21 @@ func (hh *HouseHandler) GetHouse(c *gin.Context) {
 }
 
 // UpdateHouse handles updating a house
+// @Summary Update house
+// @Description Update an existing house listing (owner or admin only)
+// @Tags Houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "House ID"
+// @Param request body UpdateHouseRequest true "House update data"
+// @Success 200 {object} map[string]interface{} "House updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request data"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - You can only update your own houses"
+// @Failure 404 {object} map[string]interface{} "House not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /houses/{id} [put]
 func (hh *HouseHandler) UpdateHouse(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -342,6 +419,20 @@ func (hh *HouseHandler) UpdateHouse(c *gin.Context) {
 }
 
 // DeleteHouse handles deleting a house
+// @Summary Delete house
+// @Description Delete a house listing (owner or admin only)
+// @Tags Houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "House ID"
+// @Success 200 {object} map[string]interface{} "House deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid house ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - You can only delete your own houses"
+// @Failure 404 {object} map[string]interface{} "House not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /houses/{id} [delete]
 func (hh *HouseHandler) DeleteHouse(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -382,6 +473,21 @@ func (hh *HouseHandler) DeleteHouse(c *gin.Context) {
 }
 
 // UploadHouseImage handles uploading images for a house
+// @Summary Upload house image
+// @Description Upload an image for a house listing (owner or admin only)
+// @Tags Houses
+// @Accept multipart/form-data
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "House ID"
+// @Param image formData file true "House image file"
+// @Success 201 {object} map[string]interface{} "Image uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid house ID or no image file provided"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - You can only upload images for your own houses"
+// @Failure 404 {object} map[string]interface{} "House not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /houses/{id}/images [post]
 func (hh *HouseHandler) UploadHouseImage(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -420,6 +526,12 @@ func (hh *HouseHandler) UploadHouseImage(c *gin.Context) {
 	}
 	defer file.Close()
 
+	// Check if Cloudinary service is available
+	if hh.cloudinaryService == nil {
+		utils.InternalServerErrorResponse(c, "Image upload service is not configured", nil)
+		return
+	}
+
 	// Upload to Cloudinary
 	result, err := hh.cloudinaryService.UploadImage(c.Request.Context(), file, "bondihub/houses")
 	if err != nil {
@@ -445,6 +557,20 @@ func (hh *HouseHandler) UploadHouseImage(c *gin.Context) {
 }
 
 // DeleteHouseImage handles deleting a house image
+// @Summary Delete house image
+// @Description Delete an image from a house listing (owner or admin only)
+// @Tags Houses
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param imageId path string true "Image ID"
+// @Success 200 {object} map[string]interface{} "Image deleted successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid image ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 403 {object} map[string]interface{} "Forbidden - You can only delete images for your own houses"
+// @Failure 404 {object} map[string]interface{} "Image not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /images/{imageId} [delete]
 func (hh *HouseHandler) DeleteHouseImage(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
