@@ -96,7 +96,7 @@ const registerNavigation = () => {
             <div class="w-full max-w-lg py-20 px-4 sm:px-8" style="border-radius: 53px">
                 <div class="text-center mb-8">
                     <div class="flex items-center justify-center gap-3 mb-4">
-                        <i class="pi pi-home text-4xl text-primary"></i>
+                        <!-- <i class="pi pi-home text-4xl text-primary"></i> -->
                         <span class="text-surface-900 dark:text-surface-0 text-3xl font-bold">BondiHub</span>
                     </div>
                     <span class="text-muted-color font-medium">Sign in to continue</span>

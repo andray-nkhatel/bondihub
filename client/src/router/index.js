@@ -5,10 +5,11 @@ import { authGuard } from './guard/auth.guard';
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [
-        // Redirect root to login
+        // Public home/landing page
         {
             path: '/',
-            redirect: '/auth/login'
+            name: 'landing',
+            component: () => import('@/views/pages/Landing.vue')
         },
         {
             path: '/auth/login',
